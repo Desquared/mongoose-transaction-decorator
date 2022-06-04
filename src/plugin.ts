@@ -1,8 +1,5 @@
-import {
+import mongoose, {
   Schema,
-  Document,
-  Query,
-  Aggregate,
   Model,
   ClientSession,
   CallbackWithoutResultAndOptionalError,
@@ -62,11 +59,11 @@ function preCb(this: any, next: CallbackWithoutResultAndOptionalError) {
     return next()
   }
   const session = als.get<ClientSession>(TRANSACTION_SESSION);
-  if (this instanceof Document) {
+  if (this instanceof mongoose.Document) {
     this.$session() || this.$session(session);
-  } else if (this instanceof Query) {
+  } else if (this instanceof mongoose.Query) {
     this.getOptions().session || this.session(session);
-  } else if (this instanceof Aggregate) {
+  } else if (this instanceof mongoose.Aggregate) {
     // FIXME：mongoose类型声明文件不完整，持续关注https://github.com/Automattic/mongoose/issues/11594
     (this as any).options.session || this.session(session);
   }
