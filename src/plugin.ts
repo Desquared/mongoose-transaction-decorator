@@ -58,6 +58,9 @@ const middlewareGroups = {
  */
 function preCb(this: any, next: CallbackWithoutResultAndOptionalError) {
   const als = new ALS();
+  if (!als.store()) {
+    return next()
+  }
   const session = als.get<ClientSession>(TRANSACTION_SESSION);
   if (this instanceof Document) {
     this.$session() || this.$session(session);
