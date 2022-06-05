@@ -100,21 +100,26 @@ function overwriteMethod(schema: Schema, method: string) {
 
 /**
  * 自动注入session的mongoose插件
- * @param schema
+ * @param enabled
  */
-export function transaction(schema: Schema) {
-  for (const middlewareType in middlewareGroups) {
-    middlewareGroups[middlewareType as MiddlewareType].forEach(method => {
-      if (middlewareType === middlewareTypes.model) {
-        overwriteMethod(schema, method);
-      } else if (
-        middlewareType === middlewareTypes.document &&
-        specials.documentAndQueryMiddlewares.includes(method)
-      ) {
-        schema.pre(method, { document: true, query: true }, preCb);
-      } else {
-        schema.pre(method, preCb);
-      }
-    });
+export function transaction(enabled = true) {
+  if (!enabled) {
+    return () => {}
+  }
+  return (schema: Schema) => {
+    for (const middlewareType in middlewareGroups) {
+      middlewareGroups[middlewareType as MiddlewareType].forEach(method => {
+        if (middlewareType === middlewareTypes.model) {
+          overwriteMethod(schema, method);
+        } else if (
+          middlewareType === middlewareTypes.document &&
+          specials.documentAndQueryMiddlewares.includes(method)
+        ) {
+          schema.pre(method, { document: true, query: true }, preCb);
+        } else {
+          schema.pre(method, preCb);
+        }
+      });
+    }
   }
 }
