@@ -34,8 +34,7 @@ export function Transactional(...args: any[]): MethodDecorator {
   ) => {
     const originalMethod = descriptor.value;
     descriptor.value = function (...args: any[]) {
-      const session = als.get<ClientSession>(TRANSACTION_SESSION)
-      if (session) {
+      if (als.store() && als.get<ClientSession>(TRANSACTION_SESSION)) {
         return originalMethod.apply(this, args);
       }
       return als.run(async () => {
