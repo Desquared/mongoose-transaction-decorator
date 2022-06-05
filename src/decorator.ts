@@ -5,6 +5,7 @@ import { ClientSessionOptions, MongoServerError } from 'mongodb';
 import {ClientSession} from "mongoose";
 
 export const TRANSACTION_SESSION = Symbol('TRANSACTION_SESSION');
+const als = new ALS();
 
 export function Transactional(connectionName?: string): MethodDecorator;
 export function Transactional(options?: ClientSessionOptions): MethodDecorator;
@@ -32,7 +33,6 @@ export function Transactional(...args: any[]): MethodDecorator {
     descriptor: TypedPropertyDescriptor<any>,
   ) => {
     const originalMethod = descriptor.value;
-    const als = new ALS();
     descriptor.value = function (...args: any[]) {
       return als.run(async () => {
         const connection = new TransactionConnection().getConnection(
