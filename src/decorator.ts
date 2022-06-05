@@ -2,6 +2,7 @@ import { ALS } from './als';
 import { DEFAULT_NAME, TransactionConnection } from './transaction-connection';
 import { ConnectionNotExistError } from './error';
 import { ClientSessionOptions, MongoServerError } from 'mongodb';
+import {ClientSession} from "mongoose";
 
 export const TRANSACTION_SESSION = Symbol('TRANSACTION_SESSION');
 
@@ -41,12 +42,19 @@ export function Transactional(...args: any[]): MethodDecorator {
           throw new ConnectionNotExistError();
         }
 
-        const session = await connection.startSession(options);
-        als.set(TRANSACTION_SESSION, session);
-        session.startTransaction();
+        let session = als.get<ClientSession>(TRANSACTION_SESSION);
+        if (!session) {
+          const
+          session = await connection.startSession(Object.assign(options, {functionName: originalMethod.name}));
+          als.set(TRANSACTION_SESSION, session);
+          session.startTransaction();
+        }
         try {
           const result = await originalMethod.apply(this, args);
-          await session.commitTransaction();
+          // @ts-ignore
+          if (session.functionName === originalMethod.name) {
+            await session.commitTransaction();
+          }
           return result;
         } catch (e) {
           // 若使用了错误数据库连接创建事务提交，则直接抛出异常结果，否则session.abortTransaction()将产生新的异常覆盖原有异常
@@ -55,7 +63,10 @@ export function Transactional(...args: any[]): MethodDecorator {
           }
           throw e;
         } finally {
-          session.endSession();
+          // @ts-ignore
+          if (session.functionName === originalMethod.name) {
+            session.endSession();
+          }
         }
       });
     };
