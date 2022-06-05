@@ -59,11 +59,11 @@ function preCb(this: any, next: CallbackWithoutResultAndOptionalError) {
     return next()
   }
   const session = als.get<ClientSession>(TRANSACTION_SESSION);
-  if (this instanceof mongoose.Document) {
+  if (this.constructor.name === 'document' || this.constructor.name === 'model') {
     this.$session() || this.$session(session);
-  } else if (this instanceof mongoose.Query) {
+  } else if (this.constructor.name === 'query') {
     this.getOptions().session || this.session(session);
-  } else if (this instanceof mongoose.Aggregate) {
+  } else if (this.constructor.name === 'aggregate') {
     // FIXME：mongoose类型声明文件不完整，持续关注https://github.com/Automattic/mongoose/issues/11594
     (this as any).options.session || this.session(session);
   }
