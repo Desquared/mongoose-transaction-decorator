@@ -33,8 +33,7 @@ export function Transactional(...args: any[]): MethodDecorator {
     descriptor: TypedPropertyDescriptor<any>,
   ) => {
     const originalMethod = descriptor.value;
-    const session = als.get<ClientSession>(TRANSACTION_SESSION);
-    if (session) {
+    if (als.store() && als.get<ClientSession>(TRANSACTION_SESSION)) {
       descriptor.value = function (...args: any[]) {
         return originalMethod.apply(this, args);
       }
