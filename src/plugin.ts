@@ -7,6 +7,8 @@ import mongoose, {
 import { TRANSACTION_SESSION } from './decorator';
 import { ALS } from './als';
 
+const als = new ALS();
+
 const modelDistinct = 'distinct';
 const specials = {
   documentAndQueryMiddlewares: ['remove', 'updateOne', 'deleteOne'], // 同时存在于Document和Query的中间件
@@ -54,7 +56,6 @@ const middlewareGroups = {
  * @param next
  */
 function preCb(this: any, next: CallbackWithoutResultAndOptionalError) {
-  const als = new ALS();
   if (!als.store()) {
     return next()
   }
