@@ -33,43 +33,41 @@ export function Transactional(...args: any[]): MethodDecorator {
     descriptor: TypedPropertyDescriptor<any>,
   ) => {
     const originalMethod = descriptor.value;
-    descriptor.value = function (...args: any[]) {
-      return als.run(async () => {
-        const connection = new TransactionConnection().getConnection(
-          connectionName,
-        );
-        if (!connection) {
-          throw new ConnectionNotExistError();
-        }
+    const session = als.get<ClientSession>(TRANSACTION_SESSION);
+    if (session) {
+      descriptor.value = function (...args: any[]) {
+        return originalMethod.apply(this, args);
+      }
+      return descriptor
+    } else {
+      descriptor.value = function (...args: any[]) {
+        return als.run(async () => {
+          const connection = new TransactionConnection().getConnection(
+            connectionName,
+          );
+          if (!connection) {
+            throw new ConnectionNotExistError();
+          }
 
-        let session = als.get<ClientSession>(TRANSACTION_SESSION);
-        let sessionCreatedInCurrentFunction = false
-        if (!session) {
-          sessionCreatedInCurrentFunction = true
-          session = await connection.startSession(options);
+          const session = await connection.startSession(options);
           als.set(TRANSACTION_SESSION, session);
           session.startTransaction();
-        }
-        try {
-          const result = await originalMethod.apply(this, args);
-          if (sessionCreatedInCurrentFunction) {
+          try {
+            const result = await originalMethod.apply(this, args);
             await session.commitTransaction();
-          }
-          return result;
-        } catch (e) {
-          // 若使用了错误数据库连接创建事务提交，则直接抛出异常结果，否则session.abortTransaction()将产生新的异常覆盖原有异常
-          if (!(e instanceof MongoServerError) && sessionCreatedInCurrentFunction) {
-            await session.abortTransaction();
-          }
-          throw e;
-        } finally {
-          // @ts-ignore
-          if (sessionCreatedInCurrentFunction) {
+            return result;
+          } catch (e) {
+            // 若使用了错误数据库连接创建事务提交，则直接抛出异常结果，否则session.abortTransaction()将产生新的异常覆盖原有异常
+            if (!(e instanceof MongoServerError)) {
+              await session.abortTransaction();
+            }
+            throw e;
+          } finally {
             session.endSession();
           }
-        }
-      });
-    };
+        });
+      };
+    }
     return descriptor;
   };
 }
